@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy.exc import SQLAlchemyError
-from schemas import ProductCreate, CartItemBase, CartCreate, OrderCreate
+from schemas import ProductCreate, CartItemBase, CartCreate, OrderCreate, UserCreate
 import models
 from uuid import UUID
 
@@ -241,3 +241,29 @@ def get_categories(db: Session, skip: int = 0, limit: int = 100):
         return categories
     except SQLAlchemyError as e:
         raise Exception(f"Database error while fetching categories: {str(e)}")
+
+
+def create_user(db: Session, user: UserCreate):
+    try:
+        db_user = models.User(email=user.email)
+        db.add(db_user)
+        db.commit()
+        db.refresh(db_user)
+        return db_user
+    except SQLAlchemyError as e:
+        db.rollback()
+        raise Exception(f"Database error while creating user: {str(e)}")
+
+def get_user(db: Session, user_id: UUID = None, email: str = None):
+    try:
+        if user_id:
+            user = db.query(models.User).filter(models.User.id == user_id).first()
+        elif email:
+            user = db.query(models.User).filter(models.User.email == email).first()
+        else:
+            return None
+        if not user:
+            return None
+        return user
+    except SQLAlchemyError as e:
+        raise Exception(f"Database error while retrieving user: {str(e)}")

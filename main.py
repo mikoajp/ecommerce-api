@@ -2,12 +2,13 @@ from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from database import Base, engine, get_db
-from schemas import ProductCreate, Product, CartItemBase, Cart, OrderCreate, Order, CartCreate, Category
+import models
+from schemas import ProductCreate, Product, CartItemBase, Cart, OrderCreate, Order, CartCreate, Category, UserCreate, User
 from crud import (
     create_product, get_products, get_product,
     add_to_cart, get_cart, remove_from_cart,
     create_order, get_orders, create_cart,
-    get_categories, update_cart_item_quantity
+    get_categories, update_cart_item_quantity,create_user, get_user
 )
 from typing import List
 from uuid import UUID
@@ -86,6 +87,31 @@ def read_orders(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
 def read_categories(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
     categories = get_categories(db, skip=skip, limit=limit)
     return categories
+
+
+@app.post("/users/", response_model=User, status_code=201)
+def create_user_endpoint(user: UserCreate, db: Session = Depends(get_db)):
+    try:
+        if db.query(models.User).filter(models.User.email == user.email).first():
+            raise HTTPException(status_code=400, detail="Email already registered")
+        db_user = create_user(db, user)
+        return db_user
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/users/{user_id}", response_model=User)
+def get_user_by_id(user_id: UUID, db: Session = Depends(get_db)):
+    user = get_user(db, user_id=user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return user
+
+@app.get("/users/email/{email}", response_model=User)
+def get_user_by_email(email: str, db: Session = Depends(get_db)):
+    user = get_user(db, email=email)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return user
 
 # Database Initialization
 @app.get("/init-db")

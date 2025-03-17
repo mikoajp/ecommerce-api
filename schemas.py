@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, EmailStr
 from typing import List, Optional
 from uuid import UUID
 from enum import Enum
@@ -129,3 +129,17 @@ class Category(CategoryBase):
 
     class Config:
         orm_mode = True
+
+
+# User Schemas
+class UserBase(BaseModel):
+    email: EmailStr
+
+class UserCreate(UserBase):
+    pass
+
+class User(UserBase):
+    id: UUID
+
+    class Config:
+        from_attributes = True
