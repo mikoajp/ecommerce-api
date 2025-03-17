@@ -2,7 +2,7 @@ from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from database import Base, engine, get_db
-import models
+from models import User
 from schemas import ProductCreate, Product, CartItemBase, Cart, OrderCreate, Order, CartCreate, Category, UserCreate, User
 from crud import (
     create_product, get_products, get_product,
@@ -92,7 +92,7 @@ def read_categories(skip: int = 0, limit: int = 10, db: Session = Depends(get_db
 @app.post("/users/", response_model=User, status_code=201)
 def create_user_endpoint(user: UserCreate, db: Session = Depends(get_db)):
     try:
-        if db.query(models.User).filter(models.User.email == user.email).first():
+        if db.query(User).filter(User.email == user.email).first():
             raise HTTPException(status_code=400, detail="Email already registered")
         db_user = create_user(db, user)
         return db_user
