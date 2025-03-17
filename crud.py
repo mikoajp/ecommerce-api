@@ -36,10 +36,12 @@ def add_to_cart(db: Session, cart_id: UUID, cart_item: CartItemBase):
     return cart
 
 def get_cart(db: Session, cart_id: UUID):
-    cart = db.query(models.Cart).options(joinedload(models.Cart.items)).filter(models.Cart.id == cart_id).first()
+    cart = db.query(models.Cart).options(
+        joinedload(models.Cart.items).joinedload(models.CartItem.product)
+    ).filter(models.Cart.id == cart_id).first()
     if not cart:
         return None
-    total = sum(item.quantity * item.product.price for item in cart.items)
+    total = sum(item.quantity * (item.product.price if item.product else 0) for item in cart.items)
     return {**cart.__dict__, "items": cart.items, "total": total}
 
 def remove_from_cart(db: Session, cart_id: UUID, product_id: UUID):
