@@ -4,7 +4,7 @@ from fastapi.openapi.docs import get_swagger_ui_html
 from fastapi.openapi.utils import get_openapi
 from sqlalchemy.orm import Session
 from database import Base, engine, get_db
-from models import User
+from models import User as SqlUser
 from schemas import ProductCreate, Product, CartItemBase, Cart, OrderCreate, Order, CartCreate, Category, UserCreate, \
     User
 from crud import (
@@ -414,7 +414,7 @@ def create_user_endpoint(
     Tworzy nowego użytkownika.
     """
     try:
-        if db.query(User).filter(User.email == user.email).first():
+        if db.query(SqlUser).filter(SqlUser.email == user.email.lower()).first():
             raise HTTPException(status_code=400, detail="Email już zarejestrowany")
         db_user = create_user(db, user)
         return db_user
@@ -477,7 +477,6 @@ def get_user_by_email(
     tags=["System"],
     summary="Inicjalizacja bazy danych",
     description="Tworzy wszystkie wymagane tabele w bazie danych.",
-    include_in_schema=False  # Ukryj endpoint w dokumentacji (opcjonalnie)
 )
 def init_db(db: Session = Depends(get_db)):
     """
