@@ -4,3 +4,4 @@ sqlalchemy~=2.0.39
 psycopg2-binary
 gunicorn
 pydantic~=2.10.6
+pydantic[email]~=2.10.6
