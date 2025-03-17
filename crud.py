@@ -139,6 +139,44 @@ def remove_from_cart(db: Session, cart_id: UUID, product_id: UUID):
         db.rollback()
         raise Exception(f"Database error while removing from cart: {str(e)}")
 
+def update_cart_item_quantity(db: Session, cart_id: UUID, product_id: UUID, quantity: int):
+    try:
+        cart = db.query(models.Cart).filter(models.Cart.id == cart_id, models.Cart.status == "active").first()
+        if not cart:
+            return None
+        item = db.query(models.CartItem).filter(
+            models.CartItem.cart_id == cart_id,
+            models.CartItem.product_id == product_id
+        ).first()
+        if not item:
+            return None
+        product = db.query(models.Product).filter(models.Product.id == product_id).first()
+        if not product or product.stock < quantity:
+            return None
+        item.quantity = quantity
+        db.commit()
+        updated_cart = db.query(models.Cart).options(
+            joinedload(models.Cart.items).joinedload(models.CartItem.product)
+        ).filter(models.Cart.id == cart_id).first()
+        total = sum(item.quantity * (item.product.price if item.product else 0) for item in updated_cart.items)
+        return {
+            "user_id": str(updated_cart.user_id) if updated_cart.user_id else None,
+            "id": str(updated_cart.id),
+            "items": [
+                {
+                    "product_id": str(item.product.id),
+                    "name": item.product.name,
+                    "quantity": item.quantity,
+                    "price": float(item.product.price)
+                } for item in updated_cart.items if item.product
+            ],
+            "total": float(total),
+            "status": updated_cart.status if updated_cart.status else "active"
+        }
+    except SQLAlchemyError as e:
+        db.rollback()
+        raise Exception(f"Database error while updating cart item quantity: {str(e)}")
+
 def create_order(db: Session, order: OrderCreate):
     try:
         cart = db.query(models.Cart).options(
