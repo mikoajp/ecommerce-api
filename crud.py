@@ -1,49 +1,63 @@
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy.exc import SQLAlchemyError
 from schemas import ProductCreate, CartItemBase, CartCreate, OrderCreate, UserCreate
-import models
+from models import Product, Cart, CartItem, Order, Category, User
 from uuid import UUID
 
 def create_product(db: Session, product: ProductCreate):
-    db_product = models.Product(**product.dict())
-    db.add(db_product)
-    db.commit()
-    db.refresh(db_product)
-    return db_product
+    try:
+        db_product = Product(**product.model_dump())
+        db.add(db_product)
+        db.commit()
+        db.refresh(db_product)
+        return db_product
+    except SQLAlchemyError as e:
+        db.rollback()
+        raise Exception(f"Database error while creating product: {str(e)}")
 
 def get_products(db: Session, skip: int = 0, limit: int = 100):
-    return db.query(models.Product).offset(skip).limit(limit).all()
+    try:
+        return db.query(Product).offset(skip).limit(limit).all()
+    except SQLAlchemyError as e:
+        raise Exception(f"Database error while fetching products: {str(e)}")
 
 def get_product(db: Session, product_id: UUID):
-    return db.query(models.Product).filter(models.Product.id == product_id).first()
+    try:
+        return db.query(Product).filter(Product.id == product_id).first()
+    except SQLAlchemyError as e:
+        raise Exception(f"Database error while fetching product: {str(e)}")
 
 def create_cart(db: Session, cart: CartCreate):
-    db_cart = models.Cart(**cart.dict())
-    db.add(db_cart)
-    db.commit()
-    db.refresh(db_cart)
-    return {
-        "user_id": str(db_cart.user_id) if db_cart.user_id else None,
-        "id": str(db_cart.id),
-        "items": [],
-        "total": 0.0,
-        "status": db_cart.status if db_cart.status else "active"
-    }
+    try:
+        db_cart = Cart(**cart.model_dump())
+        db.add(db_cart)
+        db.commit()
+        db.refresh(db_cart)
+        return {
+            "user_id": str(db_cart.user_id) if db_cart.user_id else None,
+            "id": str(db_cart.id),
+            "items": [],
+            "total": 0.0,
+            "status": db_cart.status if db_cart.status else "active"
+        }
+    except SQLAlchemyError as e:
+        db.rollback()
+        raise Exception(f"Database error while creating cart: {str(e)}")
 
 def add_to_cart(db: Session, cart_id: UUID, cart_item: CartItemBase):
     try:
-        cart = db.query(models.Cart).filter(models.Cart.id == cart_id).first()
+        cart = db.query(Cart).filter(Cart.id == cart_id).first()
         if not cart or cart.status != "active":
             return None
-        product = db.query(models.Product).filter(models.Product.id == cart_item.product_id).first()
+        product = db.query(Product).filter(Product.id == cart_item.product_id).first()
         if not product or product.stock < cart_item.quantity:
             return None
-        db_item = models.CartItem(cart_id=cart_id, **cart_item.dict())
+        db_item = CartItem(cart_id=cart_id, **cart_item.model_dump())
         db.add(db_item)
         db.commit()
-        updated_cart = db.query(models.Cart).options(
-            joinedload(models.Cart.items).joinedload(models.CartItem.product)
-        ).filter(models.Cart.id == cart_id).first()
+        updated_cart = db.query(Cart).options(
+            joinedload(Cart.items).joinedload(CartItem.product)
+        ).filter(Cart.id == cart_id).first()
         total = sum(item.quantity * (item.product.price if item.product else 0) for item in updated_cart.items)
         return {
             "user_id": str(updated_cart.user_id) if updated_cart.user_id else None,
@@ -65,9 +79,9 @@ def add_to_cart(db: Session, cart_id: UUID, cart_item: CartItemBase):
 
 def get_cart(db: Session, cart_id: UUID):
     try:
-        cart = db.query(models.Cart).options(
-            joinedload(models.Cart.items).joinedload(models.CartItem.product)
-        ).filter(models.Cart.id == cart_id).first()
+        cart = db.query(Cart).options(
+            joinedload(Cart.items).joinedload(CartItem.product)
+        ).filter(Cart.id == cart_id).first()
 
         if not cart:
             return {
@@ -99,19 +113,19 @@ def get_cart(db: Session, cart_id: UUID):
 
 def remove_from_cart(db: Session, cart_id: UUID, product_id: UUID):
     try:
-        cart = db.query(models.Cart).filter(models.Cart.id == cart_id).first()
+        cart = db.query(Cart).filter(Cart.id == cart_id).first()
         if not cart or cart.status != "active":
             return None
-        item = db.query(models.CartItem).filter(
-            models.CartItem.cart_id == cart_id,
-            models.CartItem.product_id == product_id
+        item = db.query(CartItem).filter(
+            CartItem.cart_id == cart_id,
+            CartItem.product_id == product_id
         ).first()
         if item:
             db.delete(item)
             db.commit()
-        updated_cart = db.query(models.Cart).options(
-            joinedload(models.Cart.items).joinedload(models.CartItem.product)
-        ).filter(models.Cart.id == cart_id).first()
+        updated_cart = db.query(Cart).options(
+            joinedload(Cart.items).joinedload(CartItem.product)
+        ).filter(Cart.id == cart_id).first()
         if not updated_cart:
             return {
                 "user_id": None,
@@ -141,23 +155,23 @@ def remove_from_cart(db: Session, cart_id: UUID, product_id: UUID):
 
 def update_cart_item_quantity(db: Session, cart_id: UUID, product_id: UUID, quantity: int):
     try:
-        cart = db.query(models.Cart).filter(models.Cart.id == cart_id, models.Cart.status == "active").first()
+        cart = db.query(Cart).filter(Cart.id == cart_id, Cart.status == "active").first()
         if not cart:
             return None
-        item = db.query(models.CartItem).filter(
-            models.CartItem.cart_id == cart_id,
-            models.CartItem.product_id == product_id
+        item = db.query(CartItem).filter(
+            CartItem.cart_id == cart_id,
+            CartItem.product_id == product_id
         ).first()
         if not item:
             return None
-        product = db.query(models.Product).filter(models.Product.id == product_id).first()
+        product = db.query(Product).filter(Product.id == product_id).first()
         if not product or product.stock < quantity:
             return None
         item.quantity = quantity
         db.commit()
-        updated_cart = db.query(models.Cart).options(
-            joinedload(models.Cart.items).joinedload(models.CartItem.product)
-        ).filter(models.Cart.id == cart_id).first()
+        updated_cart = db.query(Cart).options(
+            joinedload(Cart.items).joinedload(CartItem.product)
+        ).filter(Cart.id == cart_id).first()
         total = sum(item.quantity * (item.product.price if item.product else 0) for item in updated_cart.items)
         return {
             "user_id": str(updated_cart.user_id) if updated_cart.user_id else None,
@@ -179,9 +193,9 @@ def update_cart_item_quantity(db: Session, cart_id: UUID, product_id: UUID, quan
 
 def create_order(db: Session, order: OrderCreate):
     try:
-        cart = db.query(models.Cart).options(
-            joinedload(models.Cart.items).joinedload(models.CartItem.product)
-        ).filter(models.Cart.id == order.cart_id).first()
+        cart = db.query(Cart).options(
+            joinedload(Cart.items).joinedload(CartItem.product)
+        ).filter(Cart.id == order.cart_id).first()
         if not cart or cart.status != "active":
             return None
         if not cart.items:
@@ -194,7 +208,7 @@ def create_order(db: Session, order: OrderCreate):
             if product.stock < item.quantity:
                 raise ValueError(f"Insufficient stock for product {product.name}")
             product.stock -= item.quantity
-        db_order = models.Order(
+        db_order = Order(
             user_id=cart.user_id,
             cart_id=order.cart_id,
             shipping_address=order.shipping_address,
@@ -216,40 +230,45 @@ def create_order(db: Session, order: OrderCreate):
             "status": db_order.status if db_order.status else "pending",
             "total": float(db_order.total)
         }
-    except SQLAlchemyError as e:
+    except (SQLAlchemyError, ValueError) as e:
         db.rollback()
-        raise Exception(f"Database error while creating order: {str(e)}")
+        raise Exception(f"Database or validation error while creating order: {str(e)}")
 
 def get_orders(db: Session, skip: int = 0, limit: int = 100):
-    orders = db.query(models.Order).offset(skip).limit(limit).all()
-    return [
-        {
-            "id": str(order.id),
-            "user_id": str(order.user_id),
-            "cart_id": str(order.cart_id),
-            "shipping_address": order.shipping_address,
-            "billing_address": order.billing_address,
-            "payment_method": order.payment_method,
-            "status": order.status if order.status else "pending",
-            "total": float(order.total)
-        } for order in orders
-    ]
+    try:
+        orders = db.query(Order).offset(skip).limit(limit).all()
+        return [
+            {
+                "id": str(order.id),
+                "user_id": str(order.user_id),
+                "cart_id": str(order.cart_id),
+                "shipping_address": order.shipping_address,
+                "billing_address": order.billing_address,
+                "payment_method": order.payment_method,
+                "status": order.status if order.status else "pending",
+                "total": float(order.total)
+            } for order in orders
+        ]
+    except SQLAlchemyError as e:
+        raise Exception(f"Database error while fetching orders: {str(e)}")
 
 def get_categories(db: Session, skip: int = 0, limit: int = 100):
     try:
-        categories = db.query(models.Category).offset(skip).limit(limit).all()
+        categories = db.query(Category).offset(skip).limit(limit).all()
         return categories
     except SQLAlchemyError as e:
         raise Exception(f"Database error while fetching categories: {str(e)}")
 
-
 def create_user(db: Session, user: UserCreate):
     try:
-        db_user = models.User(email=user.email)
+        db_user = User(email=user.email.lower())
         db.add(db_user)
         db.commit()
         db.refresh(db_user)
-        return db_user
+        return {
+            "id": str(db_user.id),
+            "email": db_user.email
+        }
     except SQLAlchemyError as e:
         db.rollback()
         raise Exception(f"Database error while creating user: {str(e)}")
@@ -257,13 +276,16 @@ def create_user(db: Session, user: UserCreate):
 def get_user(db: Session, user_id: UUID = None, email: str = None):
     try:
         if user_id:
-            user = db.query(models.User).filter(models.User.id == user_id).first()
+            user = db.query(User).filter(User.id == user_id).first()
         elif email:
-            user = db.query(models.User).filter(models.User.email == email).first()
+            user = db.query(User).filter(User.email == email.lower()).first()
         else:
             return None
         if not user:
             return None
-        return user
+        return {
+            "id": str(user.id),
+            "email": user.email
+        }
     except SQLAlchemyError as e:
         raise Exception(f"Database error while retrieving user: {str(e)}")
