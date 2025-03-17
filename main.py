@@ -1,4 +1,5 @@
 from fastapi import FastAPI, Depends, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from database import Base, engine, get_db
 from schemas import ProductCreate, Product, CartItemBase, Cart, OrderCreate, Order, CartCreate
@@ -7,18 +8,28 @@ from crud import (
     add_to_cart, get_cart, remove_from_cart,
     create_order, get_orders, create_cart
 )
+from typing import List
 from uuid import UUID
 
 app = FastAPI()
+
+
+app.add_middleware(
+    CORSMiddleware,  # type: ignore
+    allow_origins=["http://127.0.0.1:8000", "http://localhost:8000"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Product Endpoints
 @app.post("/products/", response_model=Product)
 def create_product_endpoint(product: ProductCreate, db: Session = Depends(get_db)):
     return create_product(db, product)
 
-@app.get("/products/", response_model=list[Product])
-def read_products(db: Session = Depends(get_db)):
-    return get_products(db)
+@app.get("/products/", response_model=List[Product])
+def read_products(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
+    return get_products(db, skip=skip, limit=limit)
 
 @app.get("/products/{id}", response_model=Product)
 def read_product(id: UUID, db: Session = Depends(get_db)):
@@ -61,9 +72,9 @@ def create_order_endpoint(order: OrderCreate, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail="Could not create order")
     return created_order
 
-@app.get("/orders/", response_model=list[Order])
-def read_orders(db: Session = Depends(get_db)):
-    return get_orders(db)
+@app.get("/orders/", response_model=List[Order])
+def read_orders(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
+    return get_orders(db, skip=skip, limit=limit)
 
 # Database Initialization
 @app.get("/init-db")
