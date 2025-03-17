@@ -1,8 +1,9 @@
-from pydantic import BaseModel, field_validator, UUID4, Field
+from pydantic import BaseModel, Field, field_validator
 from typing import List, Optional
 from uuid import UUID
 from enum import Enum
 
+# Product Schemas
 class ProductBase(BaseModel):
     name: str
     description: Optional[str] = None
@@ -27,14 +28,22 @@ class ProductBase(BaseModel):
             raise ValueError("Price must be positive")
         return v
 
+    @field_validator("stock")
+    def stock_must_be_non_negative(cls, v: int) -> int:
+        if v < 0:
+            raise ValueError("Stock must be non-negative")
+        return v
+
 class ProductCreate(ProductBase):
     pass
 
 class Product(ProductBase):
     id: UUID
+
     class Config:
         from_attributes = True
 
+# CartItem Schemas
 class CartItemBase(BaseModel):
     product_id: UUID
     quantity: int
@@ -46,14 +55,16 @@ class CartItemBase(BaseModel):
         return v
 
 class CartItem(CartItemBase):
-    id: UUID
-    cart_id: UUID
+    id: Optional[UUID] = None
+    cart_id: Optional[UUID] = None
     product_name: str = Field(..., alias="product.name")
     product_price: float = Field(..., alias="product.price")
-    total: float = Field(..., description="quantity * product_price")
+
     class Config:
         from_attributes = True
+        allow_population_by_field_name = True
 
+# Cart Schemas
 class CartStatus(str, Enum):
     ACTIVE = "active"
     COMPLETED = "completed"
@@ -67,12 +78,14 @@ class CartCreate(CartBase):
 
 class Cart(CartBase):
     id: UUID
-    items: List[CartItem] = []
+    items: List[dict] = []
     total: float
     status: CartStatus
+
     class Config:
         from_attributes = True
 
+# Order Schemas
 class OrderStatus(str, Enum):
     PENDING = "pending"
     PROCESSING = "processing"
@@ -86,15 +99,33 @@ class OrderCreate(BaseModel):
     billing_address: Optional[str] = None
     payment_method: str
 
-class Order(BaseModel):
+class Order(OrderCreate):
     id: UUID
     user_id: UUID
-    cart_id: UUID
-    items: List[CartItem]
+    items: List[dict] = []
     total: float
-    shipping_address: str
-    billing_address: Optional[str] = None
-    payment_method: str
     status: OrderStatus
+
     class Config:
         from_attributes = True
+
+# Category Schemas
+class CategoryBase(BaseModel):
+    name: str
+
+    @field_validator("name")
+    def name_must_not_be_empty(cls, v: str) -> str:
+        if not v or v.strip() == "":
+            raise ValueError("Name cannot be empty")
+        if len(v) > 100:
+            raise ValueError("Name must not exceed 100 characters")
+        return v.strip()
+
+class CategoryCreate(CategoryBase):
+    pass
+
+class Category(CategoryBase):
+    id: UUID
+
+    class Config:
+        orm_mode = True
