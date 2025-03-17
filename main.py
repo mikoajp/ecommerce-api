@@ -62,7 +62,7 @@ def remove_from_cart_endpoint(cart_id: UUID, product_id: UUID, db: Session = Dep
         raise HTTPException(status_code=400, detail="Could not remove item from cart (cart not active)")
     return cart
 
-@app.patch("/carts/{cart_id}/items/{product_id}", response_model=Cart)
+@app.put("/carts/{cart_id}/items/{product_id}", response_model=Cart)
 def update_cart_item_quantity_endpoint(cart_id: UUID, product_id: UUID, quantity: int, db: Session = Depends(get_db)):
     updated_cart = update_cart_item_quantity(db, cart_id, product_id, quantity)
     if not updated_cart:
