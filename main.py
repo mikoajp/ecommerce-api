@@ -462,11 +462,14 @@ async def login_user(
     description="Returns user info if authenticated"
 )
 async def protected_resource(
-        current_user: dict = Depends(get_current_user)
+        current_user: SqlUser = Depends(get_current_user)
 ):
     return {
         "message": "Access granted to protected resource",
-        "user": current_user
+        "user": {
+            "userId": str(current_user.id),
+            "email": current_user.email
+        }
     }
 
 

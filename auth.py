@@ -61,9 +61,4 @@ async def get_current_user(token: str = Depends(oauth2_scheme),
     if user is None:
         raise credentials_exception
 
-    return {
-        "userId": str(user.id),
-        "email": user.email,
-        "iat": iat,
-        "exp": exp
-    }
+    return user
