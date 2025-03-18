@@ -1,8 +1,9 @@
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy.exc import SQLAlchemyError
-from schemas import ProductCreate, CartItemBase, CartCreate, OrderCreate, UserCreate
+from schemas import ProductCreate, CartItemBase, CartCreate, OrderCreate, UserRegister
 from models import Product, Cart, CartItem, Order, Category, User
 from uuid import UUID
+from auth import get_password_hash
 
 def create_product(db: Session, product: ProductCreate):
     try:
@@ -259,9 +260,13 @@ def get_categories(db: Session, skip: int = 0, limit: int = 100):
     except SQLAlchemyError as e:
         raise Exception(f"Database error while fetching categories: {str(e)}")
 
-def create_user(db: Session, user: UserCreate):
+def create_user(db: Session, user: UserRegister):
     try:
-        db_user = User(email=user.email.lower())
+        hashed_password = get_password_hash(user.password)
+        db_user = User(
+            email=user.email.lower(),
+            hashed_password=hashed_password
+        )
         db.add(db_user)
         db.commit()
         db.refresh(db_user)
@@ -287,5 +292,14 @@ def get_user(db: Session, user_id: UUID = None, email: str = None):
             "id": str(user.id),
             "email": user.email
         }
+    except SQLAlchemyError as e:
+        raise Exception(f"Database error while retrieving user: {str(e)}")
+
+def get_user_by_email(db: Session, email: str):
+    try:
+        user = db.query(User).filter(User.email == email.lower()).first()
+        if not user:
+            return None
+        return user
     except SQLAlchemyError as e:
         raise Exception(f"Database error while retrieving user: {str(e)}")

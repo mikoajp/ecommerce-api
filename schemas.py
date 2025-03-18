@@ -3,6 +3,7 @@ from typing import List, Optional
 from uuid import UUID
 from enum import Enum
 
+
 # Product Schemas
 class ProductBase(BaseModel):
     name: str
@@ -34,14 +35,17 @@ class ProductBase(BaseModel):
             raise ValueError("Stock must be non-negative")
         return v
 
+
 class ProductCreate(ProductBase):
     pass
+
 
 class Product(ProductBase):
     id: UUID
 
     class Config:
         from_attributes = True
+
 
 # CartItem Schemas
 class CartItemBase(BaseModel):
@@ -54,6 +58,7 @@ class CartItemBase(BaseModel):
             raise ValueError("Quantity must be positive")
         return v
 
+
 class CartItem(CartItemBase):
     id: Optional[UUID] = None
     cart_id: Optional[UUID] = None
@@ -64,17 +69,21 @@ class CartItem(CartItemBase):
         from_attributes = True
         allow_population_by_field_name = True
 
+
 # Cart Schemas
 class CartStatus(str, Enum):
     ACTIVE = "active"
     COMPLETED = "completed"
     ABANDONED = "abandoned"
 
+
 class CartBase(BaseModel):
     user_id: UUID
 
+
 class CartCreate(CartBase):
     pass
+
 
 class Cart(CartBase):
     id: UUID
@@ -85,6 +94,7 @@ class Cart(CartBase):
     class Config:
         from_attributes = True
 
+
 # Order Schemas
 class OrderStatus(str, Enum):
     PENDING = "pending"
@@ -93,11 +103,13 @@ class OrderStatus(str, Enum):
     DELIVERED = "delivered"
     CANCELLED = "cancelled"
 
+
 class OrderCreate(BaseModel):
     cart_id: UUID
     shipping_address: str
     billing_address: Optional[str] = None
     payment_method: str
+
 
 class Order(OrderCreate):
     id: UUID
@@ -108,6 +120,7 @@ class Order(OrderCreate):
 
     class Config:
         from_attributes = True
+
 
 # Category Schemas
 class CategoryBase(BaseModel):
@@ -121,25 +134,43 @@ class CategoryBase(BaseModel):
             raise ValueError("Name must not exceed 100 characters")
         return v.strip()
 
+
 class CategoryCreate(CategoryBase):
     pass
+
 
 class Category(CategoryBase):
     id: UUID
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 # User Schemas
-class UserBase(BaseModel):
+class UserRegister(BaseModel):
     email: EmailStr
+    password: str
 
-class UserCreate(UserBase):
-    pass
+    @field_validator("password")
+    def password_must_be_strong(cls, v: str) -> str:
+        if len(v) < 8:
+            raise ValueError("Password must be at least 8 characters long")
+        return v
 
-class User(UserBase):
+
+class User(BaseModel):
     id: UUID
+    email: EmailStr
 
     class Config:
         from_attributes = True
+
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+
+
+class ProtectedResponse(BaseModel):
+    message: str
+    user: dict

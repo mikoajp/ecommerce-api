@@ -1,20 +1,23 @@
+from typing import List
+from uuid import UUID
+from datetime import timedelta
+from auth import create_access_token, get_current_user, verify_password, ACCESS_TOKEN_EXPIRE_MINUTES
 from fastapi import FastAPI, Depends, HTTPException, Path, Query, Body, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.docs import get_swagger_ui_html
 from fastapi.openapi.utils import get_openapi
+from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
+
+from crud import (
+    create_product, get_products, get_product, add_to_cart, get_cart,
+    remove_from_cart, create_order, get_orders, create_cart, get_categories,
+    update_cart_item_quantity, create_user, get_user_by_email
+)
 from database import Base, engine, get_db
 from models import User as SqlUser
-from schemas import ProductCreate, Product, CartItemBase, Cart, OrderCreate, Order, CartCreate, Category, UserCreate, \
-    User
-from crud import (
-    create_product, get_products, get_product,
-    add_to_cart, get_cart, remove_from_cart,
-    create_order, get_orders, create_cart,
-    get_categories, update_cart_item_quantity, create_user, get_user
-)
-from typing import List, Dict, Any
-from uuid import UUID
+from schemas import (ProductCreate, Product, CartItemBase, Cart, OrderCreate, Order,
+                     CartCreate, Category, UserRegister, Token, ProtectedResponse)
 
 # Inicjalizacja aplikacji FastAPI z metadanymi
 app = FastAPI(
@@ -73,7 +76,6 @@ async def custom_swagger_ui_html():
     )
 
 
-# Niestandardowa generacja schematu OpenAPI
 def custom_openapi():
     if app.openapi_schema:
         return app.openapi_schema
@@ -84,13 +86,6 @@ def custom_openapi():
         description=app.description,
         routes=app.routes,
     )
-
-    # Dodaj informacje kontaktowe
-    openapi_schema["info"]["contact"] = {
-        "name": "Zespół wsparcia",
-        "url": "https://example.com/contact",
-        "email": "support@example.com"
-    }
 
     app.openapi_schema = openapi_schema
     return app.openapi_schema
@@ -390,82 +385,68 @@ def read_categories(
 # ==========================================
 
 @app.post(
-    "/users/",
-    response_model=User,
-    status_code=201,
-    tags=["Użytkownicy"],
-    summary="Utwórz nowego użytkownika",
-    description="Tworzy nowe konto użytkownika z podanym adresem email.",
-    responses={
-        400: {"description": "Email już zarejestrowany"},
-        500: {"description": "Błąd serwera podczas tworzenia użytkownika"}
-    }
+    "/auth/register",
+    status_code=status.HTTP_201_CREATED,
+    tags=["Authentication"],
+    summary="Register a new user",
+    description="Creates a new user account with email and password"
 )
-def create_user_endpoint(
-        user: UserCreate = Body(...,
-                                description="Dane użytkownika do utworzenia",
-                                example={
-                                    "email": "user@example.com"
-                                }
-                                ),
+async def register_user(
+        user: UserRegister,
         db: Session = Depends(get_db)
 ):
-    """
-    Tworzy nowego użytkownika.
-    """
-    try:
-        if db.query(SqlUser).filter(SqlUser.email == user.email.lower()).first():
-            raise HTTPException(status_code=400, detail="Email już zarejestrowany")
-        db_user = create_user(db, user)
-        return db_user
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    if db.query(SqlUser).filter(SqlUser.email == user.email.lower()).first():
+        raise HTTPException(status_code=400, detail="Email already registered")
+
+    created_user = create_user(db, user)
+    return {
+        "message": "User registered",
+        "user": created_user
+    }
+
+
+@app.post(
+    "/auth/login",
+    response_model=Token,
+    tags=["Authentication"],
+    summary="Login user and get JWT token",
+    description="Authenticates user and returns JWT access token"
+)
+async def login_user(
+        form_data: OAuth2PasswordRequestForm = Depends(),
+        db: Session = Depends(get_db)
+):
+    user = get_user_by_email(db, form_data.username)
+    if not user or not verify_password(form_data.password, user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect email or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": user.email},
+        expires_delta=access_token_expires
+    )
+    return {"access_token": access_token}
 
 
 @app.get(
-    "/users/{user_id}",
-    response_model=User,
-    tags=["Użytkownicy"],
-    summary="Pobierz użytkownika po ID",
-    description="Zwraca dane użytkownika o podanym ID.",
-    responses={
-        404: {"description": "Użytkownik nie został znaleziony"}
-    }
+    "/auth/protected",
+    response_model=ProtectedResponse,
+    tags=["Authentication"],
+    summary="Access protected resource",
+    description="Returns user info if authenticated"
 )
-def get_user_by_id(
-        user_id: UUID = Path(..., description="Unikalne ID użytkownika"),
-        db: Session = Depends(get_db)
+async def protected_resource(
+        current_user: dict = Depends(get_current_user)
 ):
-    """
-    Pobiera użytkownika po ID.
-    """
-    user = get_user(db, user_id=user_id)
-    if not user:
-        raise HTTPException(status_code=404, detail="Użytkownik nie został znaleziony")
-    return user
-
-
-@app.get(
-    "/users/email/{email}",
-    response_model=User,
-    tags=["Użytkownicy"],
-    summary="Pobierz użytkownika po adresie email",
-    description="Zwraca dane użytkownika o podanym adresie email.",
-    responses={
-        404: {"description": "Użytkownik nie został znaleziony"}
+    return {
+        "message": "Access granted to protected resource",
+        "user": current_user
     }
-)
-def get_user_by_email(
-        email: str = Path(..., description="Adres email użytkownika"),
-        db: Session = Depends(get_db)
-):
-    """
-    Pobiera użytkownika po adresie email.
-    """
-    user = get_user(db, email=email)
-    if not user:
-        raise HTTPException(status_code=404, detail="Użytkownik nie został znaleziony")
-    return user
+
 
 
 # ==========================================
