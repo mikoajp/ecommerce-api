@@ -48,6 +48,9 @@ async def get_current_user(token: str = Depends(oauth2_scheme),
         email: str = payload.get("sub")
         if email is None:
             raise credentials_exception
+        iat: int = payload.get("iat")
+        if iat is None:
+            raise credentials_exception
     except JWTError:
         raise credentials_exception
 
