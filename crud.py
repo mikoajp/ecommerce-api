@@ -243,13 +243,14 @@ def get_order(db: Session, order_id: UUID, user_id: UUID):
         return None
 
     items = db.query(CartItem).filter(CartItem.cart_id == order.cart_id).all()
+
     order_items = [
         {
             "product_id": item.product_id,
             "name": item.product.name,
-            "price": item.price,
+            "price": item.product.price,
             "quantity": item.quantity,
-            "total": item.price * item.quantity
+            "total": (item.product.price * item.quantity)
         }
         for item in items
     ]
@@ -263,7 +264,7 @@ def get_order(db: Session, order_id: UUID, user_id: UUID):
         shipping_address=order.shipping_address,
         billing_address=order.billing_address,
         payment_method=order.payment_method,
-        items=items
+        items=order_items
     )
 
 def get_orders(db: Session, skip: int = 0, limit: int = 100):
