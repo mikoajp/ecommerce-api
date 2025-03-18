@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 from crud import (
     create_product, get_products, get_product, add_to_cart, get_cart,
     remove_from_cart, create_order, get_orders, create_cart, get_categories,
-    update_cart_item_quantity, create_user, get_user_by_email
+    update_cart_item_quantity, create_user, get_user_by_email, get_order
 )
 from database import Base, engine, get_db
 from models import User as SqlUser
@@ -356,6 +356,28 @@ def read_orders(
     """
     return get_orders(db, skip=skip, limit=limit)
 
+@app.get(
+    "/orders/{order_id}",
+    response_model=Order,
+    tags=["Zamówienia"],
+    summary="Pobierz szczegóły zamówienia",
+    description="Zwraca szczegółowe informacje o zamówieniu o podanym ID, w tym listę produktów.",
+    responses={
+        404: {"description": "Zamówienie nie zostało znalezione lub brak autoryzacji"}
+    }
+)
+def read_order(
+        order_id: UUID = Path(..., description="Unikalne ID zamówienia do pobrania"),
+        db: Session = Depends(get_db),
+        current_user: SqlUser = Depends(get_current_user)
+):
+    """
+    Pobiera szczegóły zamówienia, w tym pełne dane produktów w items.
+    """
+    order = get_order(db, order_id, current_user.id)
+    if not order:
+        raise HTTPException(status_code=404, detail="Zamówienie nie zostało znalezione lub brak autoryzacji")
+    return order
 
 # ==========================================
 # Category Endpoint

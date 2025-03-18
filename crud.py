@@ -4,6 +4,7 @@ from schemas import ProductCreate, CartItemBase, CartCreate, OrderCreate, UserRe
 from models import Product, Cart, CartItem, Order, Category, User
 from uuid import UUID
 from auth import get_password_hash
+from schemas import Order as OrderSchema
 
 def create_product(db: Session, product: ProductCreate):
     try:
@@ -234,6 +235,36 @@ def create_order(db: Session, order: OrderCreate):
     except (SQLAlchemyError, ValueError) as e:
         db.rollback()
         raise Exception(f"Database or validation error while creating order: {str(e)}")
+
+
+def get_order(db: Session, order_id: UUID, user_id: UUID):
+    order = db.query(Order).filter(Order.id == order_id, Order.user_id == user_id).first()
+    if not order:
+        return None
+
+    items = db.query(CartItem).filter(CartItem.cart_id == order.cart_id).all()
+    order_items = [
+        {
+            "product_id": item.product_id,
+            "name": item.product.name,
+            "price": item.price,
+            "quantity": item.quantity,
+            "total": item.price * item.quantity
+        }
+        for item in items
+    ]
+
+    return OrderSchema(
+        id=order.id,
+        user_id=order.user_id,
+        cart_id=order.cart_id,
+        total=order.total,
+        status=order.status,
+        shipping_address=order.shipping_address,
+        billing_address=order.billing_address,
+        payment_method=order.payment_method,
+        items=items
+    )
 
 def get_orders(db: Session, skip: int = 0, limit: int = 100):
     try:

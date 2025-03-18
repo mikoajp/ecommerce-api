@@ -26,8 +26,12 @@ class Cart(Base):
     id = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid4, index=True)
     user_id = Column(PG_UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True)
     status = Column(String, default="active")
+    total = Column(Float, nullable=False, default=0.0)
     items = relationship("CartItem", back_populates="cart")
-    __table_args__ = (CheckConstraint("status IN ('active', 'completed', 'abandoned')"),)
+    order = relationship("Order", back_populates="cart", uselist=False)
+    __table_args__ = (
+        CheckConstraint("status IN ('active', 'completed', 'abandoned')", name='valid_cart_status'),
+    )
 
 class CartItem(Base):
     __tablename__ = "cart_items"
@@ -49,6 +53,7 @@ class Order(Base):
     payment_method = Column(String, nullable=False)
     status = Column(String, default="pending")
     total = Column(Float, nullable=False, default=0.0)
+    cart = relationship("Cart", back_populates="order")
     __table_args__ = (
         CheckConstraint("status IN ('pending', 'processing', 'shipped', 'delivered', 'cancelled')"),
         CheckConstraint('total >= 0', name='total_non_negative'),
@@ -58,10 +63,15 @@ class User(Base):
     __tablename__ = "users"
     id = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid4, index=True)
     email = Column(String, unique=True, nullable=False)
-    hashed_password = Column(String, nullable=False)  # Added for authentication
+    hashed_password = Column(String, nullable=False)
+    carts = relationship("Cart", back_populates="user")
+    orders = relationship("Order", back_populates="user")
 
 class Category(Base):
     __tablename__ = "categories"
     id = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid4, index=True)
     name = Column(String, nullable=False, unique=True)
     products = relationship("Product", back_populates="category")
+
+Cart.user = relationship("User", back_populates="carts")
+Order.user = relationship("User", back_populates="orders")
