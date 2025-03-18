@@ -9,3 +9,4 @@ auth~=0.5.3
 python-jose~=3.4.0
 passlib~=1.7.4
 python-multipart
+bcrypt>=4.0.1
