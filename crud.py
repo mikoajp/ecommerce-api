@@ -394,12 +394,12 @@ def update_user(db: Session, user_id: UUID, user_update: UserUpdate) -> models.U
     Aktualizuje dane użytkownika (np. email).
     """
     try:
-        db_user = db.query(models.User).filter(models.User.id == user_id).first()
+        db_user = db.query(models.User).filter(User.id == user_id).first()
         if not db_user:
             raise ValueError("Użytkownik nie znaleziony")
 
         if user_update.email and user_update.email != db_user.email:
-            if db.query(models.User).filter(models.User.email == user_update.email).first():
+            if db.query(models.User).filter(User.email == user_update.email).first():
                 raise ValueError("Email jest już zajęty")
             db_user.email = user_update.email
 
@@ -416,7 +416,7 @@ def change_user_password(db: Session, user_id: UUID, change_password: ChangePass
     Zmienia hasło użytkownika po zweryfikowaniu obecnego hasła.
     """
     try:
-        db_user = db.query(models.User).filter(models.User.id == user_id).first()
+        db_user = db.query(models.User).filter(User.id == user_id).first()
         if not db_user:
             raise ValueError("Użytkownik nie znaleziony")
 
@@ -436,7 +436,7 @@ def delete_user(db: Session, user_id: UUID) -> bool:
     Usuwa konto użytkownika.
     """
     try:
-        db_user = db.query(models.User).filter(models.User.id == user_id).first()
+        db_user = db.query(models.User).filter(User.id == user_id).first()
         if not db_user:
             raise ValueError("Użytkownik nie znaleziony")
 
