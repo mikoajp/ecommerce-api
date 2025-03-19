@@ -368,7 +368,6 @@ def get_user_orders(db: Session, user_id: UUID, skip: int = 0, limit: int = 100)
                     status=order.status if order.status else "pending",
                     total=float(order.total),
                     applied_discount=order.applied_discount if order.applied_discount else None,
-                    promotion_code=order.promotion_code if order.promotion_code else None,
                     items=order_items
                 )
             )
