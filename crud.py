@@ -1,9 +1,12 @@
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy.exc import SQLAlchemyError
-from schemas import ProductCreate, CartItemBase, CartCreate, OrderCreate, UserRegister, Order
+
+import models
+from schemas import ProductCreate, CartItemBase, CartCreate, OrderCreate, UserRegister, Order, UserUpdate, \
+    ChangePassword
 from models import Product, Cart, CartItem, Order, Category, User, Promotion
 from uuid import UUID
-from auth import get_password_hash
+from auth import get_password_hash, verify_password
 from schemas import Order as OrderSchema
 from datetime import datetime
 
@@ -385,3 +388,61 @@ def get_user_by_email(db: Session, email: str):
         return user
     except SQLAlchemyError as e:
         raise Exception(f"Database error while retrieving user: {str(e)}")
+
+def update_user(db: Session, user_id: UUID, user_update: UserUpdate) -> models.User:
+    """
+    Aktualizuje dane użytkownika (np. email).
+    """
+    try:
+        db_user = db.query(models.User).filter(models.User.id == user_id).first()
+        if not db_user:
+            raise ValueError("Użytkownik nie znaleziony")
+
+        if user_update.email and user_update.email != db_user.email:
+            if db.query(models.User).filter(models.User.email == user_update.email).first():
+                raise ValueError("Email jest już zajęty")
+            db_user.email = user_update.email
+
+        db.commit()
+        db.refresh(db_user)
+        return db_user
+    except (SQLAlchemyError, ValueError) as e:
+        db.rollback()
+        raise Exception(f"Błąd podczas aktualizacji użytkownika: {str(e)}")
+
+
+def change_user_password(db: Session, user_id: UUID, change_password: ChangePassword) -> bool:
+    """
+    Zmienia hasło użytkownika po zweryfikowaniu obecnego hasła.
+    """
+    try:
+        db_user = db.query(models.User).filter(models.User.id == user_id).first()
+        if not db_user:
+            raise ValueError("Użytkownik nie znaleziony")
+
+        if not verify_password(change_password.current_password, db_user.hashed_password):
+            raise ValueError("Bieżące hasło jest nieprawidłowe")
+
+        db_user.hashed_password = get_password_hash(change_password.new_password)
+        db.commit()
+        return True
+    except (SQLAlchemyError, ValueError) as e:
+        db.rollback()
+        raise Exception(f"Błąd podczas zmiany hasła: {str(e)}")
+
+
+def delete_user(db: Session, user_id: UUID) -> bool:
+    """
+    Usuwa konto użytkownika.
+    """
+    try:
+        db_user = db.query(models.User).filter(models.User.id == user_id).first()
+        if not db_user:
+            raise ValueError("Użytkownik nie znaleziony")
+
+        db.delete(db_user)
+        db.commit()
+        return True
+    except SQLAlchemyError as e:
+        db.rollback()
+        raise Exception(f"Błąd podczas usuwania użytkownika: {str(e)}")

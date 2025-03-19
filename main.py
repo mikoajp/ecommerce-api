@@ -12,13 +12,13 @@ from sqlalchemy.orm import Session
 from crud import (
     create_product, get_products, get_product, add_to_cart, get_cart,
     remove_from_cart, create_order, get_orders, create_cart, get_categories,
-    update_cart_item_quantity, create_user, get_user_by_email, get_order
+    update_cart_item_quantity, create_user, get_user_by_email, get_order, delete_user, change_user_password, update_user
 )
 from database import Base, engine, get_db
 from models import User as SqlUser, Promotion as DbPromotion
 from schemas import (ProductCreate, Product, CartItemBase, Cart, OrderCreate, Order,
                      CartCreate, Category, UserRegister, Token, ProtectedResponse, Promotion,
-                     PromotionCreate)
+                     PromotionCreate, ChangePassword, UserUpdate)
 
 # Inicjalizacja aplikacji FastAPI z metadanymi
 app = FastAPI(
@@ -488,6 +488,46 @@ async def protected_resource(
             "email": current_user.email
         }
     }
+
+# User Management Endpoints
+@app.put("/users/me", response_model=SqlUser, tags=["User Management"])
+def update_user_profile(
+    user_update: UserUpdate = Body(...),
+    current_user: SqlUser = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Aktualizuje dane profilu użytkownika (np. email).
+    """
+    updated_user = update_user(db, current_user.id, user_update)
+    return updated_user
+
+
+@app.put("/users/me/password", status_code=status.HTTP_200_OK, tags=["User Management"])
+def change_password(
+    change_password: ChangePassword = Body(...),
+    current_user: SqlUser = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Zmienia hasło użytkownika po zweryfikowaniu obecnego hasła.
+    """
+    if change_user_password(db, current_user.id, change_password):
+        return {"message": "Hasło zostało pomyślnie zmienione"}
+    raise HTTPException(status_code=400, detail="Nie udało się zmienić hasła")
+
+
+@app.delete("/users/me", status_code=status.HTTP_204_NO_CONTENT, tags=["User Management"])
+def delete_user_account(
+    current_user: SqlUser = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Usuwa konto użytkownika.
+    """
+    if delete_user(db, current_user.id):
+        return None
+    raise HTTPException(status_code=400, detail="Nie udało się usunąć konta")
 
 
 

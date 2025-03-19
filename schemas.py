@@ -189,6 +189,22 @@ class ProtectedResponse(BaseModel):
     user: dict
 
 
+# User Management Schemas
+class UserUpdate(BaseModel):
+    email: Optional[EmailStr] = None
+
+
+class ChangePassword(BaseModel):
+    current_password: str
+    new_password: str
+
+    @field_validator("new_password")
+    def new_password_must_be_strong(cls, v: str) -> str:
+        if len(v) < 8:
+            raise ValueError("New password must be at least 8 characters long")
+        return v
+
+
 # Promotion Schemas
 class PromotionBase(BaseModel):
     code: str
