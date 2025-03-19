@@ -17,7 +17,8 @@ from crud import (
 from database import Base, engine, get_db
 from models import User as SqlUser, Promotion
 from schemas import (ProductCreate, Product, CartItemBase, Cart, OrderCreate, Order,
-                     CartCreate, Category, UserRegister, Token, ProtectedResponse, Promotion, PromotionBase)
+                     CartCreate, Category, UserRegister, Token, ProtectedResponse, Promotion,
+                     PromotionCreate)
 
 # Inicjalizacja aplikacji FastAPI z metadanymi
 app = FastAPI(
@@ -383,7 +384,7 @@ def read_order(
 
 # Promotion Endpoints
 @app.post("/promotions/", response_model=Promotion, status_code=status.HTTP_201_CREATED, tags=["Promocje"])
-def create_promotion(promotion: PromotionBase = Body(...), db: Session = Depends(get_db)):
+def create_promotion(promotion: PromotionCreate = Body(...), db: Session = Depends(get_db)):
     db_promotion = Promotion(**promotion.dict())
     db.add(db_promotion)
     db.commit()

@@ -212,6 +212,8 @@ class PromotionBase(BaseModel):
             raise ValueError("Discount percentage must be between 0 and 100")
         return v
 
+class PromotionCreate(PromotionBase):
+    pass
 
 class Promotion(PromotionBase):
     id: UUID
