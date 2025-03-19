@@ -17,6 +17,7 @@ class Product(Base):
     category_id = Column(PG_UUID(as_uuid=True), ForeignKey("categories.id"), nullable=False)
     sku = Column(String, nullable=False, unique=True)
     category = relationship("Category", back_populates="products")
+    cart_items = relationship("CartItem", back_populates="product")
     __table_args__ = (
         CheckConstraint('price >= 0', name='price_non_negative'),
         CheckConstraint('stock >= 0', name='stock_non_negative'),
@@ -54,6 +55,7 @@ class Order(Base):
     payment_method = Column(String, nullable=False)
     status = Column(String, default="pending")
     total = Column(Float, nullable=False, default=0.0)
+    applied_discount = Column(Float, nullable=True)
     cart = relationship("Cart", back_populates="order")
     __table_args__ = (
         CheckConstraint("status IN ('pending', 'processing', 'shipped', 'delivered', 'cancelled')"),
@@ -62,7 +64,6 @@ class Order(Base):
 
 class Promotion(Base):
     __tablename__ = "promotions"
-
     id = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid4, index=True)
     code = Column(String, unique=True, index=True, nullable=False)
     discount_percentage = Column(Float, nullable=False)
@@ -70,6 +71,12 @@ class Promotion(Base):
     valid_until = Column(DateTime, nullable=False)
     max_uses = Column(Integer, nullable=True)
     uses = Column(Integer, default=0)
+
+    __table_args__ = (
+        CheckConstraint('discount_percentage > 0 AND discount_percentage <= 100', name='valid_discount_percentage'),
+        CheckConstraint('max_uses > 0 OR max_uses IS NULL', name='valid_max_uses'),
+        CheckConstraint('uses >= 0', name='uses_non_negative'),
+    )
 
 class User(Base):
     __tablename__ = "users"
