@@ -18,7 +18,7 @@ from database import Base, engine, get_db
 from models import User as SqlUser, Promotion as DbPromotion
 from schemas import (ProductCreate, Product, CartItemBase, Cart, OrderCreate, Order,
                      CartCreate, Category, UserRegister, Token, ProtectedResponse, Promotion,
-                     PromotionCreate, ChangePassword, UserUpdate)
+                     PromotionCreate, UserUpdate, ChangePassword, User)
 
 # Inicjalizacja aplikacji FastAPI z metadanymi
 app = FastAPI(
@@ -493,7 +493,7 @@ async def protected_resource(
 
 
 # User Management Endpoints
-@app.put("/users/me", response_model=SqlUser, tags=["User Management"])
+@app.put("/users/me", response_model=User, tags=["User Management"])
 def update_user_profile(
         user_update: UserUpdate = Body(...),
         current_user: SqlUser = Depends(get_current_user),
