@@ -62,10 +62,10 @@ class CartItemBase(BaseModel):
 class CartItem(CartItemBase):
     id: Optional[UUID] = None
     cart_id: Optional[UUID] = None
-    product_name: str = Field(..., alias="product.name")
-    product_price: float = Field(..., alias="product.price")
+    name: str  # ← Change this from product_name with alias
+    price: float
 
-    class Config:
+class Config:
         from_attributes = True
         populate_by_name = True
 
@@ -87,7 +87,7 @@ class CartCreate(CartBase):
 
 class Cart(CartBase):
     id: UUID
-    items: List[CartItem] = []
+    items: List[dict] = []
     total: float
     status: CartStatus
 
@@ -126,7 +126,7 @@ class OrderCreate(BaseModel):
 class Order(OrderCreate):
     id: UUID
     user_id: UUID
-    items: List[OrderItem] = []
+    items: List[dict] = []
     total: float
     status: OrderStatus
     applied_discount: Optional[float] = None
