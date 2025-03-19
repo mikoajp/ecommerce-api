@@ -394,7 +394,7 @@ def create_promotion(promotion: PromotionCreate = Body(...), db: Session = Depen
 
 @app.get("/promotions/", response_model=List[Promotion], tags=["Promocje"])
 def read_promotions(skip: int = Query(0, ge=0), limit: int = Query(10, ge=1, le=100), db: Session = Depends(get_db)):
-    return db.query(Promotion).offset(skip).limit(limit).all()
+    return db.query(DbPromotion).offset(skip).limit(limit).all()
 
 # ==========================================
 # Category Endpoint
