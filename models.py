@@ -17,7 +17,6 @@ class Product(Base):
     category_id = Column(PG_UUID(as_uuid=True), ForeignKey("categories.id"), nullable=False)
     sku = Column(String, nullable=False, unique=True)
     category = relationship("Category", back_populates="products")
-    cart_items = relationship("CartItem", back_populates="product")
     __table_args__ = (
         CheckConstraint('price >= 0', name='price_non_negative'),
         CheckConstraint('stock >= 0', name='stock_non_negative'),
