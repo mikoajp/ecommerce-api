@@ -1,10 +1,11 @@
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy.exc import SQLAlchemyError
-from schemas import ProductCreate, CartItemBase, CartCreate, OrderCreate, UserRegister
-from models import Product, Cart, CartItem, Order, Category, User
+from schemas import ProductCreate, CartItemBase, CartCreate, OrderCreate, UserRegister, Order
+from models import Product, Cart, CartItem, Order, Category, User, Promotion
 from uuid import UUID
 from auth import get_password_hash
 from schemas import Order as OrderSchema
+from datetime import datetime
 
 def create_product(db: Session, product: ProductCreate):
     try:
@@ -193,48 +194,97 @@ def update_cart_item_quantity(db: Session, cart_id: UUID, product_id: UUID, quan
         db.rollback()
         raise Exception(f"Database error while updating cart item quantity: {str(e)}")
 
-def create_order(db: Session, order: OrderCreate):
+
+def validate_promotion(db: Session, code: str) -> Promotion:
+    """
+    Waliduje kod promocyjny i zwraca obiekt Promotion, jeśli jest ważny.
+    """
+    promotion = db.query(Promotion).filter(Promotion.code == code).first()
+    if not promotion:
+        return None
+    now = datetime.utcnow()
+    if promotion.valid_from > now or promotion.valid_until < now:
+        return None
+    if promotion.max_uses and promotion.uses >= promotion.max_uses:
+        return None
+    return promotion
+
+
+def create_order(db: Session, order: OrderCreate) -> Order | None:
+    """
+    Tworzy nowe zamówienie na podstawie koszyka z opcjonalnym kodem promocyjnym.
+    """
     try:
+
         cart = db.query(Cart).options(
             joinedload(Cart.items).joinedload(CartItem.product)
         ).filter(Cart.id == order.cart_id).first()
-        if not cart or cart.status != "active":
+
+        if not cart or cart.status != "active" or not cart.items:
             return None
-        if not cart.items:
-            return None
-        total = sum(item.quantity * (item.product.price if item.product else 0) for item in cart.items)
+
+        total = sum(item.product.price * item.quantity for item in cart.items)
+
         for item in cart.items:
             product = item.product
             if not product:
-                raise ValueError(f"Product not found for cart item {item.id}")
+                raise ValueError(f"Produkt nie znaleziony dla elementu koszyka {item.id}")
             if product.stock < item.quantity:
-                raise ValueError(f"Insufficient stock for product {product.name}")
+                raise ValueError(f"Niewystarczający stan magazynowy dla produktu {product.name}")
             product.stock -= item.quantity
+            db.add(product)
+
+        applied_discount = 0.0
+        if order.promotion_code:
+            promotion = validate_promotion(db, order.promotion_code)
+            if promotion:
+                discount = total * (promotion.discount_percentage / 100)
+                applied_discount = discount
+                total -= discount
+                promotion.uses += 1
+                db.add(promotion)
+
         db_order = Order(
             user_id=cart.user_id,
             cart_id=order.cart_id,
             shipping_address=order.shipping_address,
             billing_address=order.billing_address,
             payment_method=order.payment_method,
-            total=total
+            total=total,
+            status="pending"
         )
         cart.status = "completed"
         db.add(db_order)
         db.commit()
         db.refresh(db_order)
-        return {
-            "id": str(db_order.id),
-            "user_id": str(db_order.user_id),
-            "cart_id": str(db_order.cart_id),
-            "shipping_address": db_order.shipping_address,
-            "billing_address": db_order.billing_address,
-            "payment_method": db_order.payment_method,
-            "status": db_order.status if db_order.status else "pending",
-            "total": float(db_order.total)
-        }
+
+        order_items = [
+            {
+                "product_id": str(item.product_id),
+                "name": item.product.name,
+                "price": float(item.product.price),
+                "quantity": item.quantity,
+                "total": float(item.product.price * item.quantity)
+            }
+            for item in cart.items
+        ]
+
+        return OrderSchema(
+            id=db_order.id,
+            user_id=db_order.user_id,
+            cart_id=db_order.cart_id,
+            total=float(db_order.total),
+            status=db_order.status,
+            shipping_address=db_order.shipping_address,
+            billing_address=db_order.billing_address,
+            payment_method=db_order.payment_method,
+            items=order_items,
+            applied_discount=applied_discount if applied_discount > 0 else None
+        )
+
     except (SQLAlchemyError, ValueError) as e:
         db.rollback()
-        raise Exception(f"Database or validation error while creating order: {str(e)}")
+        raise Exception(f"Błąd bazy danych lub walidacji podczas tworzenia zamówienia: {str(e)}")
 
 
 def get_order(db: Session, order_id: UUID, user_id: UUID):

@@ -2,7 +2,7 @@ from pydantic import BaseModel, Field, field_validator, EmailStr
 from typing import List, Optional
 from uuid import UUID
 from enum import Enum
-
+from datetime import datetime
 
 # Product Schemas
 class ProductBase(BaseModel):
@@ -87,7 +87,7 @@ class CartCreate(CartBase):
 
 class Cart(CartBase):
     id: UUID
-    items: List[dict] = []
+    items: List[CartItem] = []
     total: float
     status: CartStatus
 
@@ -104,19 +104,32 @@ class OrderStatus(str, Enum):
     CANCELLED = "cancelled"
 
 
+class OrderItem(BaseModel):
+    product_id: UUID
+    name: str
+    price: float
+    quantity: int
+    total: float
+
+    class Config:
+        from_attributes = True
+
+
 class OrderCreate(BaseModel):
     cart_id: UUID
     shipping_address: str
     billing_address: Optional[str] = None
     payment_method: str
+    promotion_code: Optional[str] = None
 
 
 class Order(OrderCreate):
     id: UUID
     user_id: UUID
-    items: List[dict] = []
+    items: List[OrderItem] = []
     total: float
     status: OrderStatus
+    applied_discount: Optional[float] = None
 
     class Config:
         from_attributes = True
@@ -174,3 +187,34 @@ class Token(BaseModel):
 class ProtectedResponse(BaseModel):
     message: str
     user: dict
+
+
+# Promotion Schemas
+class PromotionBase(BaseModel):
+    code: str
+    discount_percentage: float
+    valid_from: datetime
+    valid_until: datetime
+    max_uses: Optional[int] = None
+    uses: int = 0
+
+    @field_validator("code")
+    def code_must_not_be_empty(cls, v: str) -> str:
+        if not v or v.strip() == "":
+            raise ValueError("Promotion code cannot be empty")
+        if len(v) > 50:
+            raise ValueError("Promotion code must not exceed 50 characters")
+        return v.strip()
+
+    @field_validator("discount_percentage")
+    def discount_must_be_valid(cls, v: float) -> float:
+        if v <= 0 or v > 100:
+            raise ValueError("Discount percentage must be between 0 and 100")
+        return v
+
+
+class Promotion(PromotionBase):
+    id: UUID
+
+    class Config:
+        from_attributes = True

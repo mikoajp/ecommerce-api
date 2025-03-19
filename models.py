@@ -1,8 +1,9 @@
-from sqlalchemy import Column, String, Float, ForeignKey, Integer, CheckConstraint
+from sqlalchemy import Column, String, Float, ForeignKey, Integer, CheckConstraint, DateTime
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import relationship
 from database import Base
 from uuid import uuid4
+from datetime import datetime
 
 class Product(Base):
     __tablename__ = "products"
@@ -58,6 +59,17 @@ class Order(Base):
         CheckConstraint("status IN ('pending', 'processing', 'shipped', 'delivered', 'cancelled')"),
         CheckConstraint('total >= 0', name='total_non_negative'),
     )
+
+class Promotion(Base):
+    __tablename__ = "promotions"
+
+    id = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid4, index=True)
+    code = Column(String, unique=True, index=True, nullable=False)
+    discount_percentage = Column(Float, nullable=False)
+    valid_from = Column(DateTime, nullable=False, default=datetime.utcnow)
+    valid_until = Column(DateTime, nullable=False)
+    max_uses = Column(Integer, nullable=True)
+    uses = Column(Integer, default=0)
 
 class User(Base):
     __tablename__ = "users"
