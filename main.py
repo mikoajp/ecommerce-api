@@ -12,7 +12,8 @@ from sqlalchemy.orm import Session
 from crud import (
     create_product, get_products, get_product, add_to_cart, get_cart,
     remove_from_cart, create_order, get_orders, create_cart, get_categories,
-    update_cart_item_quantity, create_user, get_user_by_email, get_order, delete_user, change_user_password, update_user
+    update_cart_item_quantity, create_user, get_user_by_email, get_order, delete_user, change_user_password,
+    update_user, get_user_orders
 )
 from database import Base, engine, get_db
 from models import User as SqlUser, Promotion as DbPromotion
@@ -531,6 +532,22 @@ def delete_user_account(
     if delete_user(db, current_user.id):
         return None
     raise HTTPException(status_code=400, detail="Nie udało się usunąć konta")
+
+@app.get("/users/me/orders", response_model=List[Order], tags=["User Management"])
+def get_user_orders_endpoint(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(10, ge=1, le=100),
+    current_user: SqlUser = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Zwraca listę zamówień zalogowanego użytkownika.
+    """
+    try:
+        orders = get_user_orders(db, user_id=current_user.id, skip=skip, limit=limit)
+        return orders
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 # ==========================================

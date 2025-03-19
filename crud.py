@@ -338,6 +338,44 @@ def get_orders(db: Session, skip: int = 0, limit: int = 100):
     except SQLAlchemyError as e:
         raise Exception(f"Database error while fetching orders: {str(e)}")
 
+def get_user_orders(db: Session, user_id: UUID, skip: int = 0, limit: int = 100):
+    """
+    Pobiera zamówienia dla konkretnego użytkownika.
+    """
+    try:
+        orders = db.query(Order).filter(Order.user_id == user_id).offset(skip).limit(limit).all()
+        result = []
+        for order in orders:
+            items = db.query(CartItem).options(joinedload(CartItem.product)).filter(CartItem.cart_id == order.cart_id).all()
+            order_items = [
+                {
+                    "product_id": str(item.product_id),
+                    "name": item.product.name,
+                    "price": float(item.product.price),
+                    "quantity": item.quantity,
+                    "total": float(item.product.price * item.quantity)
+                }
+                for item in items
+            ]
+            result.append(
+                OrderSchema(
+                    id=order.id,
+                    user_id=order.user_id,
+                    cart_id=order.cart_id,
+                    shipping_address=order.shipping_address,
+                    billing_address=order.billing_address,
+                    payment_method=order.payment_method,
+                    status=order.status if order.status else "pending",
+                    total=float(order.total),
+                    applied_discount=order.applied_discount if order.applied_discount else None,
+                    promotion_code=order.promotion_code if order.promotion_code else None,
+                    items=order_items
+                )
+            )
+        return result
+    except SQLAlchemyError as e:
+        raise Exception(f"Database error while fetching user orders: {str(e)}")
+
 def get_categories(db: Session, skip: int = 0, limit: int = 100):
     try:
         categories = db.query(Category).offset(skip).limit(limit).all()
