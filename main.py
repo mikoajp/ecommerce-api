@@ -357,6 +357,7 @@ def read_orders(
     """
     return get_orders(db, skip=skip, limit=limit)
 
+
 @app.get(
     "/orders/{order_id}",
     response_model=Order,
@@ -381,7 +382,6 @@ def read_order(
     return order
 
 
-
 # Promotion Endpoints
 @app.post("/promotions/", response_model=Promotion, status_code=status.HTTP_201_CREATED, tags=["Promocje"])
 def create_promotion(promotion: PromotionCreate = Body(...), db: Session = Depends(get_db)):
@@ -392,9 +392,11 @@ def create_promotion(promotion: PromotionCreate = Body(...), db: Session = Depen
     db.refresh(db_promotion)
     return db_promotion
 
+
 @app.get("/promotions/", response_model=List[Promotion], tags=["Promocje"])
 def read_promotions(skip: int = Query(0, ge=0), limit: int = Query(10, ge=1, le=100), db: Session = Depends(get_db)):
     return db.query(DbPromotion).offset(skip).limit(limit).all()
+
 
 # ==========================================
 # Category Endpoint
@@ -489,12 +491,13 @@ async def protected_resource(
         }
     }
 
+
 # User Management Endpoints
 @app.put("/users/me", response_model=SqlUser, tags=["User Management"])
 def update_user_profile(
-    user_update: UserUpdate = Body(...),
-    current_user: SqlUser = Depends(get_current_user),
-    db: Session = Depends(get_db)
+        user_update: UserUpdate = Body(...),
+        current_user: SqlUser = Depends(get_current_user),
+        db: Session = Depends(get_db)
 ):
     """
     Aktualizuje dane profilu użytkownika (np. email).
@@ -505,9 +508,9 @@ def update_user_profile(
 
 @app.put("/users/me/password", status_code=status.HTTP_200_OK, tags=["User Management"])
 def change_password(
-    change_password: ChangePassword = Body(...),
-    current_user: SqlUser = Depends(get_current_user),
-    db: Session = Depends(get_db)
+        change_password: ChangePassword = Body(...),
+        current_user: SqlUser = Depends(get_current_user),
+        db: Session = Depends(get_db)
 ):
     """
     Zmienia hasło użytkownika po zweryfikowaniu obecnego hasła.
@@ -519,8 +522,8 @@ def change_password(
 
 @app.delete("/users/me", status_code=status.HTTP_204_NO_CONTENT, tags=["User Management"])
 def delete_user_account(
-    current_user: SqlUser = Depends(get_current_user),
-    db: Session = Depends(get_db)
+        current_user: SqlUser = Depends(get_current_user),
+        db: Session = Depends(get_db)
 ):
     """
     Usuwa konto użytkownika.
@@ -528,7 +531,6 @@ def delete_user_account(
     if delete_user(db, current_user.id):
         return None
     raise HTTPException(status_code=400, detail="Nie udało się usunąć konta")
-
 
 
 # ==========================================
