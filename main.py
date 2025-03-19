@@ -15,7 +15,7 @@ from crud import (
     update_cart_item_quantity, create_user, get_user_by_email, get_order
 )
 from database import Base, engine, get_db
-from models import User as SqlUser, Promotion
+from models import User as SqlUser, Promotion as DbPromotion
 from schemas import (ProductCreate, Product, CartItemBase, Cart, OrderCreate, Order,
                      CartCreate, Category, UserRegister, Token, ProtectedResponse, Promotion,
                      PromotionCreate)
@@ -385,7 +385,8 @@ def read_order(
 # Promotion Endpoints
 @app.post("/promotions/", response_model=Promotion, status_code=status.HTTP_201_CREATED, tags=["Promocje"])
 def create_promotion(promotion: PromotionCreate = Body(...), db: Session = Depends(get_db)):
-    db_promotion = Promotion(**promotion.dict())
+    promotion_data = promotion.dict()
+    db_promotion = DbPromotion(**promotion_data)
     db.add(db_promotion)
     db.commit()
     db.refresh(db_promotion)
