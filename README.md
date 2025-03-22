@@ -138,92 +138,61 @@ ecommerce-backend/
 
 ### 🛍️ Products
 
-#### `GET /products/`
-Retrieves all products from the database.
-
-#### `GET /products/{id}`
-Gets details of a specific product by its identifier.
-
-#### `POST /products/`
-Creates a new product in the database.
-
-#### `PUT /products/{id}`
-Updates an existing product.
-
-#### `DELETE /products/{id}`
-Removes a product from the database.
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/products/` | Retrieves all products from the database |
+| `GET` | `/products/{id}` | Gets details of a specific product by its identifier |
+| `POST` | `/products/` | Creates a new product in the database |
+| `PUT` | `/products/{id}` | Updates an existing product |
+| `DELETE` | `/products/{id}` | Removes a product from the database |
 
 ### 🛒 Carts
 
-#### `POST /carts/`
-Creates a new shopping cart.
-
-#### `GET /carts/{cart_id}`
-Retrieves cart contents.
-
-#### `POST /carts/{cart_id}/items/`
-Adds a product to the cart.
-
-#### `PUT /carts/{cart_id}/items/{product_id}`
-Updates product quantity in the cart.
-
-#### `DELETE /carts/{cart_id}/items/{product_id}`
-Removes a product from the cart.
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/carts/` | Creates a new shopping cart |
+| `GET` | `/carts/{cart_id}` | Retrieves cart contents |
+| `POST` | `/carts/{cart_id}/items/` | Adds a product to the cart |
+| `PUT` | `/carts/{cart_id}/items/{product_id}` | Updates product quantity in the cart |
+| `DELETE` | `/carts/{cart_id}/items/{product_id}` | Removes a product from the cart |
 
 ### 📦 Orders
 
-#### `POST /orders/`
-Creates a new order based on cart contents.
-
-#### `GET /orders/`
-Retrieves a list of all orders.
-
-#### `GET /orders/{order_id}`
-Gets details of a specific order.
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/orders/` | Creates a new order based on cart contents |
+| `GET` | `/orders/` | Retrieves a list of all orders |
+| `GET` | `/orders/{order_id}` | Gets details of a specific order |
 
 ### 🎁 Promotions
 
-#### `POST /promotions/`
-Creates a new promotion.
-
-#### `GET /promotions/`
-Retrieves a list of all available promotions.
-
-#### `GET /promotions/{promotion_id}`
-Gets details of a specific promotion.
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/promotions/` | Creates a new promotion |
+| `GET` | `/promotions/` | Retrieves a list of all available promotions |
+| `GET` | `/promotions/{promotion_id}` | Gets details of a specific promotion |
 
 ### 🗂️ Categories
 
-#### `GET /categories/`
-Retrieves a list of all product categories.
-
-#### `GET /categories/{category_id}/products`
-Gets all products in a specific category.
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/categories/` | Retrieves a list of all product categories |
+| `GET` | `/categories/{category_id}/products` | Gets all products in a specific category |
 
 ### 🔐 Authentication
 
-#### `POST /auth/register`
-Registers a new user.
-
-#### `POST /auth/login`
-Logs in a user and returns a JWT token.
-
-#### `GET /auth/protected`
-Example protected endpoint requiring authorization.
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/auth/register` | Registers a new user |
+| `POST` | `/auth/login` | Logs in a user and returns a JWT token |
+| `GET` | `/auth/protected` | Example protected endpoint requiring authorization |
 
 ### 👤 User Management
 
-#### `GET /users/me`
-Retrieves profile data for the logged-in user.
-
-#### `PUT /users/me`
-Updates user profile data.
-
-#### `DELETE /users/me`
-Deletes the user account.
-
-#### `PUT /users/me/password`
-Changes user password.
-
-#### `GET /users/me/orders`
-Retrieves order history for the logged-in user.
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/users/me` | Retrieves profile data for the logged-in user |
+| `PUT` | `/users/me` | Updates user profile data |
+| `DELETE` | `/users/me` | Deletes the user account |
+| `PUT` | `/users/me/password` | Changes user password |
+| `GET` | `/users/me/orders` | Retrieves order history for the logged-in user |
