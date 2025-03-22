@@ -1,114 +1,120 @@
-🛒 E-commerce Backend
-A backend for an e-commerce application built with FastAPI (Python) and powered by a PostgreSQL database.
-It provides functionality for managing products, carts, orders, promotions, categories, and user accounts.
+# 🛒 E-commerce Backend
 
-✨ Features
-✅ Product management (CRUD operations)
+A powerful **FastAPI** backend for an e-commerce application, using **PostgreSQL** as its core database.  
+Includes full CRUD operations, authentication, cart management, orders, promotions, and more!
 
-✅ Cart creation and item management
+---
 
-✅ Order creation and retrieval with optional discount (applied_discount)
+## 🚀 Features
+✅ **Product management** (CRUD operations)  
+✅ **Cart** creation and item management  
+✅ **Orders** with optional discounts (`applied_discount`)  
+✅ **Promotion** management  
+✅ **Category** listing  
+✅ **JWT**-based authentication and user profile management  
 
-✅ Promotion management
+---
 
-✅ Category listing
+## 🛠️ Tech Stack
+| Technology  | Description           |
+|-------------|-----------------------|
+| 🐍 Python   | Backend language      |
+| ⚡ FastAPI   | Web framework         |
+| 🐘 PostgreSQL | Relational Database |
+| 🛠️ SQLAlchemy | ORM                 |
+| 🐾 Alembic   | Database migrations   |
+| ☁️ Heroku   | Deployment platform   |
 
-✅ User authentication and profile management with JWT
+---
 
-🛠️ Technologies
-Framework: FastAPI
+## ⚙️ Prerequisites
 
-ORM: SQLAlchemy
+- Python **3.9+**
+- PostgreSQL
+- Git
+- Heroku CLI (for deployment)
 
-Database: PostgreSQL
+---
 
-Migrations: Alembic
+## 📦 Installation & Setup
 
-Deployment: Heroku
-
-⚙️ Prerequisites
-Python 3.9+
-
-PostgreSQL
-
-Git
-
-Heroku CLI (for deployment)
-
-🚀 Local Setup and Running
-1. Clone the repository:
-bash
-Kopiuj
-Edytuj
+### 1️⃣ Clone the repository
+```bash
 git clone https://github.com/<your_username>/<your_repository>.git
 cd <your_repository>
-2. Create a virtual environment and install dependencies:
+2️⃣ Create and activate a virtual environment
 bash
 Kopiuj
 Edytuj
 python -m venv venv
-# Linux/Mac
-source venv/bin/activate
-# Windows
-venv\Scripts\activate
 
+# On Linux/Mac
+source venv/bin/activate
+
+# On Windows
+venv\Scripts\activate
+3️⃣ Install dependencies
+bash
+Kopiuj
+Edytuj
 pip install -r requirements.txt
-3. Set up the database:
+4️⃣ Set up the database
 Create a PostgreSQL database:
 
 bash
 Kopiuj
 Edytuj
 createdb ecommerce_db
-Create a .env file in the root directory with the following variables:
+Add environment variables in a .env file:
 
-env
+dotenv
 Kopiuj
 Edytuj
 DATABASE_URL=postgresql://<user>:<password>@localhost:5432/ecommerce_db
 SECRET_KEY=<your_secret_key>
-4. Run database migrations:
+5️⃣ Run migrations
 bash
 Kopiuj
 Edytuj
 alembic upgrade head
-5. Start the server:
+6️⃣ Start the server
 bash
 Kopiuj
 Edytuj
 uvicorn main:app --reload --host 0.0.0.0 --port 8000
-The backend will be available at:
-➡️ http://localhost:8000
+🖥️ Visit the app at: http://localhost:8000
 
 ☁️ Deployment to Heroku
-1. Log in to Heroku:
+🔑 Login to Heroku
 bash
 Kopiuj
 Edytuj
 heroku login
-2. Create a Heroku app:
+🏗️ Create Heroku app
 bash
 Kopiuj
 Edytuj
 heroku create ecommerce-api118
-3. Set environment variables:
+⚙️ Set environment variables
 bash
 Kopiuj
 Edytuj
 heroku config:set DATABASE_URL=<your_postgresql_url>
 heroku config:set SECRET_KEY=<your_secret_key>
-4. Deploy the application:
+🚀 Deploy the app
 bash
 Kopiuj
 Edytuj
 git push heroku main
-5. Run migrations on Heroku:
+🛠️ Run migrations on Heroku
 bash
 Kopiuj
 Edytuj
 heroku run "alembic upgrade head"
-📂 Project Structure
-bash
+🌐 Live API docs: https://ecommerce-api118-c945ac1acfd7.herokuapp.com/docs
+
+📁 Project Structure
+graphql
 Kopiuj
 Edytuj
 ecommerce-backend/
@@ -116,49 +122,43 @@ ecommerce-backend/
 ├── models.py          # SQLAlchemy models
 ├── schemas.py         # Pydantic schemas
 ├── crud.py            # CRUD logic
-├── main.py            # Main FastAPI file
-├── database.py        # Database configuration
-├── requirements.txt   # Python dependencies
-└── README.md          # Project documentation
-📖 API Endpoints
+├── main.py            # FastAPI app entry point
+├── database.py        # DB configuration & connection
+├── requirements.txt   # Project dependencies
+└── README.md          # Documentation
+🔗 API Endpoints Overview
 🛍️ Products
 Method	Endpoint	Description
-POST	/products/	Create a new product
-GET	/products/	Retrieve a list of products
-GET	/products/{id}	Retrieve product by ID
+POST	/products/	Create product
+GET	/products/	Get all products
+GET	/products/{id}	Get product by ID
 🛒 Carts
 Method	Endpoint	Description
-POST	/carts/	Create a new cart
-POST	/carts/{cart_id}/items/	Add a product to the cart
+POST	/carts/	Create cart
+POST	/carts/{cart_id}/items/	Add item to cart
 GET	/carts/{cart_id}	Retrieve cart contents
-DELETE	/carts/{cart_id}/items/{product_id}	Remove a product from the cart
-PUT	/carts/{cart_id}/items/{product_id}	Update quantity of a product in cart
+PUT	/carts/{cart_id}/items/{product_id}	Update item quantity in cart
+DELETE	/carts/{cart_id}/items/{product_id}	Remove item from cart
 📦 Orders
 Method	Endpoint	Description
-POST	/orders/	Create a new order
-GET	/orders/	Retrieve all orders
-GET	/orders/{order_id}	Retrieve order by ID
+POST	/orders/	Create order
+GET	/orders/	List all orders
+GET	/orders/{order_id}	Get order details
 🎁 Promotions
 Method	Endpoint	Description
-POST	/promotions/	Create a new promotion
-GET	/promotions/	Retrieve all promotions
+POST	/promotions/	Create promotion
+GET	/promotions/	List all promotions
 🗂️ Categories
 Method	Endpoint	Description
-GET	/categories/	Retrieve all categories
+GET	/categories/	List all categories
 🔐 Authentication
 Method	Endpoint	Description
-POST	/auth/register	Register a new user
-POST	/auth/login	Login user and obtain JWT token
-GET	/auth/protected	Access protected resource (JWT)
+POST	/auth/register	Register user
+POST	/auth/login	Login user and return JWT token
+GET	/auth/protected	Access protected resource
 👤 User Management
 Method	Endpoint	Description
-PUT	/users/me	Update user profile
-DELETE	/users/me	Delete user account
-PUT	/users/me/password	Change user password
-GET	/users/me/orders	Retrieve user's orders (with discounts)
-📝 API Documentation
-➡️ Swagger UI:
-https://ecommerce-api118-c945ac1acfd7.herokuapp.com/docs
-
-📄 License
-This project is licensed under the MIT License. See the LICENSE file for details.
+PUT	/users/me	Update profile
+DELETE	/users/me	Delete account
+PUT	/users/me/password	Change password
+GET	/users/me/orders	Get your orders (discount included)
